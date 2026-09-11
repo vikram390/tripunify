@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     MONGODB_DB_NAME: str = "tripunify"
 
     # Auth
-    JWT_SECRET_KEY: str = "dev-secret-change-me"
+    JWT_SECRET_KEY: str = "dev-secret-change-me-before-any-real-deployment"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
 

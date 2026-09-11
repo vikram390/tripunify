@@ -71,7 +71,7 @@ for the full list and defaults. Never commit a real `.env` file.
 Built in order, one feature at a time:
 
 - [x] Step 1 — Project scaffolding (FastAPI health check + React frontend wired together)
-- [ ] Step 2 — Auth & group creation
+- [x] Step 2 — Auth & group creation (signup/login, JWT, trip creation, invite-code join)
 - [ ] Step 3 — Preference collection
 - [ ] Step 4 — AI itinerary draft generation
 - [ ] Step 5 — Live data enrichment (Places + weather)

@@ -1,36 +1,39 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './auth/AuthContext'
+import LoginPage from './auth/LoginPage'
+import { ProtectedRoute } from './auth/ProtectedRoute'
+import SignupPage from './auth/SignupPage'
+import DashboardPage from './dashboard/DashboardPage'
+import JoinPage from './trip-room/JoinPage'
+import TripRoomPage from './trip-room/TripRoomPage'
 
 function App() {
-  const [status, setStatus] = useState('checking...')
-  const [ok, setOk] = useState(null)
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then((data) => {
-        setStatus(`${data.service} (${data.environment}): ${data.status}`)
-        setOk(true)
-      })
-      .catch(() => {
-        setStatus('unreachable — is the backend running on port 8000?')
-        setOk(false)
-      })
-  }, [])
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <div className="space-y-3 text-center">
-        <h1 className="text-3xl font-bold text-slate-800">TripUnify</h1>
-        <p className="text-slate-500">
-          Backend status:{' '}
-          <span
-            className={`font-mono ${ok === false ? 'text-red-600' : 'text-emerald-600'}`}
-          >
-            {status}
-          </span>
-        </p>
-      </div>
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/join/:code" element={<JoinPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:tripId"
+            element={
+              <ProtectedRoute>
+                <TripRoomPage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
