@@ -14,3 +14,4 @@ async def connect_and_init() -> None:
     await client.admin.command("ping")
     await db.users.create_index("email", unique=True)
     await db.trips.create_index("invite_code", unique=True)
+    await db.preferences.create_index([("trip_id", 1), ("user_id", 1)], unique=True)
