@@ -21,8 +21,11 @@ if config.config_file_name is not None:
 
 # Use the same DATABASE_URL the app reads from .env, instead of the
 # placeholder in alembic.ini (keeps the real connection string out of a
-# tracked file).
-config.set_main_option("sqlalchemy.url", get_settings().DATABASE_URL)
+# tracked file). Set directly on the config dict rather than via
+# config.set_main_option(), since that routes through configparser's
+# interpolation and chokes on a literal "%" (e.g. a percent-encoded
+# password like "%40").
+DATABASE_URL = get_settings().DATABASE_URL
 
 target_metadata = Base.metadata
 
@@ -44,7 +47,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = DATABASE_URL
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -69,8 +72,10 @@ async def run_async_migrations() -> None:
 
     """
 
+    configuration = config.get_section(config.config_ini_section, {})
+    configuration["sqlalchemy.url"] = DATABASE_URL
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

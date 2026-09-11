@@ -65,7 +65,7 @@ export default function ItineraryTab({ trip }) {
               {generating ? 'Generating...' : itinerary ? 'Regenerate' : 'Generate itinerary'}
             </button>
           </div>
-          {generating && <p className="mt-3 text-sm text-slate-400">This can take up to 30 seconds...</p>}
+          {generating && <p className="mt-3 text-sm text-slate-400">This can take up to a minute...</p>}
         </div>
       )}
 

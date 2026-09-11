@@ -92,7 +92,7 @@ Built in order, one feature at a time:
 - [x] Step 1 — Project scaffolding (FastAPI health check + React frontend wired together)
 - [x] Step 2 — Auth & group creation (signup/login, JWT, trip creation, invite-code join)
 - [x] Step 3 — Preference collection (per-member form, group submission status)
-- [ ] Step 4 — AI itinerary draft generation
+- [x] Step 4 — AI itinerary draft generation (Gemini/OpenAI-swappable, conflict flagging)
 - [ ] Step 5 — Live data enrichment (Places + weather)
 - [ ] Step 6 — Browser automation module (scoped, lowest priority)
 - [ ] Step 7 — Group review & real-time chat

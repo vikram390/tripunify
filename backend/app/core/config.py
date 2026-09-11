@@ -1,11 +1,17 @@
 """Centralized app settings, loaded from environment variables / .env."""
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Resolve .env relative to this file (backend/app/core/config.py -> backend/.env),
+# not the process's current working directory — that varies depending on how
+# uvicorn is launched and silently falls back to defaults if it's ever wrong.
+ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
 
     # App
     APP_NAME: str = "TripUnify API"
@@ -27,7 +33,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3.6-flash"
 
     # Places / Weather
     GOOGLE_PLACES_API_KEY: str = ""
