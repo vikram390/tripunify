@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "D:/TripUnify/backend/.venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--reload", "--reload-dir", "D:/TripUnify/backend/app", "--port", "8000", "--app-dir", "D:/TripUnify/backend"],
+      "port": 8000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "D:/TripUnify/frontend", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}

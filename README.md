@@ -1,0 +1,83 @@
+# TripUnify
+
+AI-powered group travel planner. An organizer creates a trip, invites members, everyone
+submits preferences through an in-app chat/form, and an LLM generates a live, editable,
+day-wise itinerary enriched with real places/weather data.
+
+Final-year B.Tech project. Built incrementally, feature by feature — see "Project status" below.
+
+## Tech stack
+
+- **Backend:** Python, FastAPI, MongoDB (Motor), JWT auth, WebSockets
+- **Frontend:** React (Vite), Tailwind CSS
+- **AI:** Swappable LLM provider (OpenAI or Gemini) via env var
+- **Data:** Google Places API (or OpenStreetMap/Nominatim fallback), Open-Meteo (weather)
+- **Automation:** Playwright (one scoped flow — see backend/app/automation)
+- **Export:** PDF itinerary export
+
+## Project structure
+
+```
+/backend   FastAPI app, organized by feature (auth, trips, preferences, itinerary, chat, automation)
+/frontend  React app (Vite + Tailwind)
+```
+
+## Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- MongoDB running locally (or an Atlas connection string) — required starting from the auth/trips feature onward
+
+## Backend setup
+
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate     # macOS/Linux
+pip install -r requirements.txt
+copy .env.example .env          # Windows: copy, macOS/Linux: cp
+```
+
+Fill in `.env` with your own values (see `.env.example` for the full list): MongoDB URI, a
+JWT secret, your LLM provider + API key, and (optionally) a Google Places API key.
+
+Run the API:
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+Health check: http://localhost:8000/api/health
+
+## Frontend setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173 — it calls the backend health check on load (proxied via Vite's
+dev server config in `vite.config.js`, so no CORS setup is needed in development).
+
+## Environment variables
+
+All secrets live in `backend/.env` (gitignored). See [`backend/.env.example`](backend/.env.example)
+for the full list and defaults. Never commit a real `.env` file.
+
+## Project status
+
+Built in order, one feature at a time:
+
+- [x] Step 1 — Project scaffolding (FastAPI health check + React frontend wired together)
+- [ ] Step 2 — Auth & group creation
+- [ ] Step 3 — Preference collection
+- [ ] Step 4 — AI itinerary draft generation
+- [ ] Step 5 — Live data enrichment (Places + weather)
+- [ ] Step 6 — Browser automation module (scoped, lowest priority)
+- [ ] Step 7 — Group review & real-time chat
+- [ ] Step 8 — Export (PDF / .ics)
+
+The itinerary-generation prompt is isolated in its own module (added in step 4) so it can be
+tuned without touching orchestration code.
