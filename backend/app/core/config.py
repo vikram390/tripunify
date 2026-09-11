@@ -14,9 +14,8 @@ class Settings(BaseSettings):
     # CORS - comma-separated list of allowed origins
     CORS_ORIGINS: str = "http://localhost:5173"
 
-    # MongoDB
-    MONGODB_URI: str = "mongodb://localhost:27017"
-    MONGODB_DB_NAME: str = "tripunify"
+    # PostgreSQL (async driver: asyncpg)
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/tripunify"
 
     # Auth
     JWT_SECRET_KEY: str = "dev-secret-change-me-before-any-real-deployment"
@@ -26,7 +25,9 @@ class Settings(BaseSettings):
     # LLM provider: "openai" or "gemini"
     LLM_PROVIDER: str = "gemini"
     OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.5-flash"
 
     # Places / Weather
     GOOGLE_PLACES_API_KEY: str = ""

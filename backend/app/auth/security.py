@@ -1,14 +1,15 @@
 import datetime as dt
+import uuid
 
 import bcrypt
 import jwt
-from bson import ObjectId
-from bson.errors import InvalidId
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.db import db
+from app.core.db import get_db
+from app.core.models import User
 
 settings = get_settings()
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -47,14 +48,16 @@ def decode_access_token(token: str) -> str:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-) -> dict:
+    db: AsyncSession = Depends(get_db),
+) -> User:
     if credentials is None:
         raise credentials_exception
     user_id = decode_access_token(credentials.credentials)
     try:
-        user = await db.users.find_one({"_id": ObjectId(user_id)})
-    except InvalidId:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
         raise credentials_exception
+    user = await db.get(User, user_uuid)
     if user is None:
         raise credentials_exception
     return user

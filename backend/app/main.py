@@ -5,7 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.router import router as auth_router
 from app.core.config import get_settings
-from app.core.db import client, connect_and_init
+from app.core.db import check_connection, engine
+from app.itinerary.router import router as itinerary_router
 from app.preferences.router import router as preferences_router
 from app.trips.router import router as trips_router
 
@@ -14,9 +15,9 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await connect_and_init()
+    await check_connection()
     yield
-    client.close()
+    await engine.dispose()
 
 
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
@@ -32,6 +33,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(trips_router)
 app.include_router(preferences_router)
+app.include_router(itinerary_router)
 
 
 @app.get("/api/health")

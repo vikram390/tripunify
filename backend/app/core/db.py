@@ -1,17 +1,22 @@
-"""MongoDB connection (Motor async client), shared across feature modules."""
-from motor.motor_asyncio import AsyncIOMotorClient
+"""PostgreSQL connection (SQLAlchemy async engine/session), shared across feature modules."""
+from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
 
 settings = get_settings()
 
-client = AsyncIOMotorClient(settings.MONGODB_URI)
-db = client[settings.MONGODB_DB_NAME]
+engine = create_async_engine(settings.DATABASE_URL)
+async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
-async def connect_and_init() -> None:
-    """Fail fast with a clear error if Mongo isn't reachable, and ensure indexes exist."""
-    await client.admin.command("ping")
-    await db.users.create_index("email", unique=True)
-    await db.trips.create_index("invite_code", unique=True)
-    await db.preferences.create_index([("trip_id", 1), ("user_id", 1)], unique=True)
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with async_session_factory() as session:
+        yield session
+
+
+async def check_connection() -> None:
+    """Fail fast with a clear error at startup if Postgres isn't reachable."""
+    async with engine.connect():
+        pass

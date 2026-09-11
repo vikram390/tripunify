@@ -38,4 +38,6 @@ export const api = {
   savePreferences: (tripId, payload) =>
     request(`/trips/${tripId}/preferences/me`, { method: 'PUT', body: payload }),
   getPreferencesStatus: (tripId) => request(`/trips/${tripId}/preferences/status`),
+  generateItinerary: (tripId) => request(`/trips/${tripId}/itinerary/generate`, { method: 'POST' }),
+  getItinerary: (tripId) => request(`/trips/${tripId}/itinerary`),
 }
