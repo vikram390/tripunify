@@ -37,12 +37,20 @@ python -m venv .venv
 .venv\Scripts\activate          # Windows
 # source .venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
+```
+
+**First time only:** create your real `.env` from the template, then fill in your own
+values (see `.env.example` for the full list): `DATABASE_URL` (your local Postgres
+user/password), a JWT secret, your LLM provider + API key, and (optionally) a Google
+Places API key.
+
+```bash
 copy .env.example .env          # Windows: copy, macOS/Linux: cp
 ```
 
-Fill in `.env` with your own values (see `.env.example` for the full list): `DATABASE_URL`
-(your local Postgres user/password), a JWT secret, your LLM provider + API key, and
-(optionally) a Google Places API key.
+⚠️ Only run that copy command once. Re-running it later **overwrites your real `.env`
+with the blank template**, wiping out your saved password/API keys — if `.env` already
+exists, skip straight to editing it instead.
 
 Create the database, then create all tables by running the migrations:
 
