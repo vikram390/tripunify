@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { api } from '../api/client'
+import { api, getToken } from '../api/client'
 import { Navbar } from '../components/Navbar'
 import ChatTab from './ChatTab'
 import ItineraryTab from './ItineraryTab'
@@ -20,8 +20,42 @@ export default function TripRoomPage() {
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
 
+  const [itinerary, setItinerary] = useState(null)
+  const [itineraryLoading, setItineraryLoading] = useState(true)
+  const [messages, setMessages] = useState([])
+  const [messagesLoading, setMessagesLoading] = useState(true)
+  const [wsConnected, setWsConnected] = useState(false)
+
   useEffect(() => {
     api.getTrip(tripId).then(setTrip).catch((err) => setError(err.message))
+    api
+      .getItinerary(tripId)
+      .then(setItinerary)
+      .catch((err) => setError(err.message))
+      .finally(() => setItineraryLoading(false))
+    api
+      .getChatMessages(tripId)
+      .then(setMessages)
+      .catch((err) => setError(err.message))
+      .finally(() => setMessagesLoading(false))
+  }, [tripId])
+
+  // One WebSocket connection per trip room, shared by chat and itinerary live
+  // updates, so both work no matter which tab is currently active.
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    const ws = new WebSocket(`${protocol}://${window.location.host}/api/trips/${tripId}/chat/ws?token=${getToken()}`)
+    ws.onopen = () => setWsConnected(true)
+    ws.onclose = () => setWsConnected(false)
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      if (data.type === 'chat_message') {
+        setMessages((prev) => [...prev, data.message])
+      } else if (data.type === 'itinerary_updated') {
+        setItinerary(data.itinerary)
+      }
+    }
+    return () => ws.close()
   }, [tripId])
 
   function copyInviteLink() {
@@ -30,6 +64,10 @@ export default function TripRoomPage() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
+  }
+
+  async function handleSendMessage(content) {
+    await api.sendChatMessage(tripId, { content })
   }
 
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>
@@ -102,8 +140,22 @@ export default function TripRoomPage() {
         )}
 
         {activeTab === 'preferences' && <PreferencesTab tripId={tripId} />}
-        {activeTab === 'itinerary' && <ItineraryTab trip={trip} />}
-        {activeTab === 'chat' && <ChatTab tripId={tripId} />}
+        {activeTab === 'itinerary' && (
+          <ItineraryTab
+            trip={trip}
+            itinerary={itinerary}
+            loading={itineraryLoading}
+            onItineraryChange={setItinerary}
+          />
+        )}
+        {activeTab === 'chat' && (
+          <ChatTab
+            messages={messages}
+            loading={messagesLoading}
+            connected={wsConnected}
+            onSend={handleSendMessage}
+          />
+        )}
       </main>
     </div>
   )

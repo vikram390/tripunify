@@ -1,7 +1,8 @@
 """
 In-memory WebSocket connection registry, keyed by trip_id. Single-process
-only (fine for this project's scale) — broadcasts chat messages and
-itinerary updates to every client currently viewing a given trip.
+only (fine for this project's scale) — shared by chat and itinerary, so
+both chat messages and itinerary updates broadcast to everyone currently
+viewing a given trip over the same connections.
 """
 from fastapi import WebSocket
 

@@ -6,10 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.security import decode_access_token, get_current_user
-from app.chat.connection_manager import manager
 from app.chat.schemas import ChatMessageCreate, ChatMessageOut
 from app.core.db import get_db
 from app.core.models import ChatMessage, User
+from app.core.ws_manager import manager
 from app.trips.service import get_trip_or_404, require_member
 
 router = APIRouter(prefix="/api/trips/{trip_id}/chat", tags=["chat"])

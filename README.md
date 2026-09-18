@@ -103,7 +103,7 @@ Built in order, one feature at a time:
 - [x] Step 4 — AI itinerary draft generation (Gemini/OpenAI-swappable, conflict flagging)
 - [x] Step 5 — Live data enrichment (real place matches, per-day weather, auto-attached after generation)
 - [ ] Step 6 — Browser automation module (scoped, lowest priority)
-- [~] Step 7 — Group review & real-time chat (live persisted chat done; section-level itinerary regeneration in progress)
+- [~] Step 7 — Group review & real-time chat (live persisted chat verified; section-level regeneration built, awaiting a clean live run — see commit message)
 - [ ] Step 8 — Export (PDF / .ics)
 
 The itinerary-generation prompt is isolated in its own module (added in step 4) so it can be

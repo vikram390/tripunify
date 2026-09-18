@@ -72,3 +72,48 @@ def build_itinerary_prompt(
     lines.append("Respond with JSON only, matching the provided schema exactly.")
 
     return "\n".join(lines)
+
+
+def build_day_regeneration_prompt(
+    trip: dict,
+    preferences: list[dict],
+    members_by_id: dict[str, dict],
+    day_number: int,
+    current_day: dict,
+    instruction: str,
+) -> str:
+    lines: list[str] = []
+
+    lines.append(f"You are revising ONE day of an existing group trip itinerary to {trip['destination']}.")
+    lines.append(f"Trip dates: {trip['start_date']} to {trip['end_date']}.")
+    lines.append(f"Group budget for the whole trip, per person: {trip['budget_min']}-{trip['budget_max']}.")
+    lines.append("")
+
+    if preferences:
+        lines.append("Group preferences (unchanged from the original plan):")
+        for pref in preferences:
+            member = members_by_id.get(pref["user_id"])
+            name = member["name"] if member else "A member"
+            lines.append(
+                f"- {name}: interested in {', '.join(pref['interests'])}; "
+                f"budget comfort: {pref['budget_comfort']}; date flexibility: {pref['date_flexibility']}"
+            )
+        lines.append("")
+
+    lines.append(f"Current plan for Day {day_number} ({current_day['date']}):")
+    lines.append(f"Summary: {current_day['summary']}")
+    for act in current_day["activities"]:
+        lines.append(f"- {act['time']} {act['title']} ({act['category']}): {act['description']}")
+    lines.append("")
+
+    lines.append(f'A group member requested this change: "{instruction}"')
+    lines.append(
+        "Produce a REVISED plan for this single day only, applying the requested change while keeping "
+        "the rest of the day sensible and well-paced. Keep the same date and day_number. Follow the same "
+        "guidelines as before: realistic time slots, a short one-sentence description per activity, a "
+        "category, and 'place_query' filled for real, findable places (empty for logistics like transfers "
+        "or check-in/out)."
+    )
+    lines.append("Respond with JSON only, matching the provided schema exactly.")
+
+    return "\n".join(lines)

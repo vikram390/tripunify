@@ -1,45 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, getToken } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 
-export default function ChatTab({ tripId }) {
+export default function ChatTab({ messages, loading, connected, onSend }) {
   const { user } = useAuth()
-  const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [connected, setConnected] = useState(false)
   const bottomRef = useRef(null)
-  const wsRef = useRef(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    api
-      .getChatMessages(tripId)
-      .then((data) => {
-        if (!cancelled) setMessages(data)
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
-
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const ws = new WebSocket(`${protocol}://${window.location.host}/api/trips/${tripId}/chat/ws?token=${getToken()}`)
-    ws.onopen = () => setConnected(true)
-    ws.onclose = () => setConnected(false)
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === 'chat_message') {
-        setMessages((prev) => [...prev, data.message])
-      }
-    }
-    wsRef.current = ws
-
-    return () => {
-      cancelled = true
-      ws.close()
-    }
-  }, [tripId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -50,8 +16,9 @@ export default function ChatTab({ tripId }) {
     const content = text.trim()
     if (!content) return
     setText('')
+    setError('')
     try {
-      await api.sendChatMessage(tripId, { content })
+      await onSend(content)
     } catch (err) {
       setError(err.message)
     }

@@ -72,3 +72,7 @@ class ItineraryOut(BaseModel):
     generated_at: datetime
     model: str
     status: Literal["draft", "finalized"] = "draft"
+
+
+class DayRegenerateRequest(BaseModel):
+    instruction: str = Field(min_length=1, max_length=500, description="e.g. 'swap the hotel for something cheaper'")
