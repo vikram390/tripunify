@@ -91,9 +91,12 @@ export default function ItineraryTab({ trip }) {
           <div className="space-y-4">
             {itinerary.days.map((day) => (
               <div key={day.day_number} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-slate-800">
-                  Day {day.day_number} · {day.date}
-                </h3>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Day {day.day_number} · {day.date}
+                  </h3>
+                  {day.weather && <span className="text-xs text-slate-500">{day.weather.summary}</span>}
+                </div>
                 <p className="mb-4 mt-1 text-sm text-slate-500">{day.summary}</p>
                 <ul className="space-y-3">
                   {day.activities.map((act, i) => (
@@ -109,8 +112,17 @@ export default function ItineraryTab({ trip }) {
                           >
                             {act.category}
                           </span>
+                          {act.place_rating != null && (
+                            <span className="text-xs text-amber-600">★ {act.place_rating}</span>
+                          )}
                         </div>
                         <p className="text-sm text-slate-500">{act.description}</p>
+                        {act.place_name && (
+                          <p className="mt-0.5 text-xs text-slate-400">
+                            📍 {act.place_name}
+                            {act.place_description ? ` — ${act.place_description}` : ''}
+                          </p>
+                        )}
                       </div>
                     </li>
                   ))}

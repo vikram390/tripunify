@@ -34,15 +34,40 @@ class Conflict(BaseModel):
 
 
 class ItineraryLLMResponse(BaseModel):
-    """Exact shape the LLM must return — also used as the structured-output schema."""
+    """Exact shape the LLM must return — also used as the structured-output schema.
+
+    Deliberately has no rating/weather fields: those come from real APIs in the
+    enrichment step (app/itinerary/enrichment.py), never from the model itself.
+    """
 
     days: list[DayPlan]
     conflicts: list[Conflict] = Field(default_factory=list)
 
 
+class EnrichedActivity(Activity):
+    """An Activity plus a real place match, added after the LLM call."""
+
+    place_name: str | None = None
+    place_rating: float | None = None
+    place_description: str | None = None
+
+
+class DayWeather(BaseModel):
+    summary: str
+    temp_min_c: float | None = None
+    temp_max_c: float | None = None
+    precipitation_chance: int | None = None
+    is_historical_estimate: bool = False
+
+
+class EnrichedDayPlan(DayPlan):
+    activities: list[EnrichedActivity]
+    weather: DayWeather | None = None
+
+
 class ItineraryOut(BaseModel):
     trip_id: str
-    days: list[DayPlan]
+    days: list[EnrichedDayPlan]
     conflicts: list[Conflict]
     generated_at: datetime
     model: str

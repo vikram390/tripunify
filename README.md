@@ -101,7 +101,7 @@ Built in order, one feature at a time:
 - [x] Step 2 — Auth & group creation (signup/login, JWT, trip creation, invite-code join)
 - [x] Step 3 — Preference collection (per-member form, group submission status)
 - [x] Step 4 — AI itinerary draft generation (Gemini/OpenAI-swappable, conflict flagging)
-- [ ] Step 5 — Live data enrichment (Places + weather)
+- [x] Step 5 — Live data enrichment (real place matches, per-day weather, auto-attached after generation)
 - [ ] Step 6 — Browser automation module (scoped, lowest priority)
 - [ ] Step 7 — Group review & real-time chat
 - [ ] Step 8 — Export (PDF / .ics)

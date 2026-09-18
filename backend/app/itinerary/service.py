@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.models import Itinerary, Preference, Trip
+from app.itinerary.enrichment import enrich_days
 from app.itinerary.llm_providers import get_llm_provider
 from app.itinerary.prompts import build_itinerary_prompt
 from app.itinerary.schemas import ItineraryLLMResponse, ItineraryOut
@@ -64,10 +65,12 @@ async def generate_itinerary(trip: Trip, db: AsyncSession) -> ItineraryOut:
             detail=f"The AI itinerary generation failed, please try again. ({last_error})",
         )
 
+    enriched_days = await enrich_days(llm_result.days, trip.destination, date_list, settings.GOOGLE_PLACES_API_KEY)
+
     now = datetime.now(timezone.utc)
     model_name = settings.GEMINI_MODEL if settings.LLM_PROVIDER == "gemini" else settings.OPENAI_MODEL
     values = {
-        "days": [d.model_dump() for d in llm_result.days],
+        "days": [d.model_dump() for d in enriched_days],
         "conflicts": [c.model_dump() for c in llm_result.conflicts],
         "generated_at": now,
         "model": model_name,
