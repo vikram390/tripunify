@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { Navbar } from '../components/Navbar'
+import ChatTab from './ChatTab'
 import ItineraryTab from './ItineraryTab'
 import PreferencesTab from './PreferencesTab'
 
@@ -9,6 +10,7 @@ const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'preferences', label: 'Preferences' },
   { id: 'itinerary', label: 'Itinerary' },
+  { id: 'chat', label: 'Chat' },
 ]
 
 export default function TripRoomPage() {
@@ -101,6 +103,7 @@ export default function TripRoomPage() {
 
         {activeTab === 'preferences' && <PreferencesTab tripId={tripId} />}
         {activeTab === 'itinerary' && <ItineraryTab trip={trip} />}
+        {activeTab === 'chat' && <ChatTab tripId={tripId} />}
       </main>
     </div>
   )

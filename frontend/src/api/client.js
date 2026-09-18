@@ -40,4 +40,7 @@ export const api = {
   getPreferencesStatus: (tripId) => request(`/trips/${tripId}/preferences/status`),
   generateItinerary: (tripId) => request(`/trips/${tripId}/itinerary/generate`, { method: 'POST' }),
   getItinerary: (tripId) => request(`/trips/${tripId}/itinerary`),
+  getChatMessages: (tripId) => request(`/trips/${tripId}/chat/messages`),
+  sendChatMessage: (tripId, payload) =>
+    request(`/trips/${tripId}/chat/messages`, { method: 'POST', body: payload }),
 }
