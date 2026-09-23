@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api } from '../api/client'
 import { useAuth } from './AuthContext'
 import { clearPendingInvite, getPendingInvite } from './pendingInvite'
 
@@ -20,9 +19,10 @@ export default function SignupPage() {
       await signup(form)
       const code = getPendingInvite()
       if (code) {
+        // Hand off to JoinPage so they see what they're joining before it happens,
+        // rather than joining them automatically here.
         clearPendingInvite()
-        const trip = await api.joinTrip(code)
-        navigate(`/trips/${trip.id}`)
+        navigate(`/join/${code}`)
       } else {
         navigate('/')
       }

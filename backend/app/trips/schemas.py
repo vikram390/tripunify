@@ -48,3 +48,16 @@ class TripOut(BaseModel):
 
 class TripDetailOut(TripOut):
     members: list[MemberOut]
+
+
+class TripPreviewOut(BaseModel):
+    """Read-only preview shown before someone commits to joining via an invite link."""
+
+    id: str
+    name: str
+    destination: str
+    start_date: date
+    end_date: date
+    organizer_name: str
+    member_count: int
+    already_member: bool

@@ -34,6 +34,7 @@ export const api = {
   listTrips: () => request('/trips'),
   getTrip: (id) => request(`/trips/${id}`),
   joinTrip: (inviteCode) => request('/trips/join', { method: 'POST', body: { invite_code: inviteCode } }),
+  previewTrip: (inviteCode) => request(`/trips/preview/${inviteCode}`),
   getMyPreferences: (tripId) => request(`/trips/${tripId}/preferences/me`),
   savePreferences: (tripId, payload) =>
     request(`/trips/${tripId}/preferences/me`, { method: 'PUT', body: payload }),

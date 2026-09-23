@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.auth.security import get_current_user
 from app.core.db import get_db
 from app.core.models import Trip, TripMember, User
-from app.trips.schemas import JoinTripRequest, TripCreateRequest, TripDetailOut, TripOut
+from app.trips.schemas import JoinTripRequest, TripCreateRequest, TripDetailOut, TripOut, TripPreviewOut
 from app.trips.service import get_trip_or_404, require_member, resolve_members, trip_out
 from app.trips.utils import generate_invite_code
 
@@ -58,6 +58,35 @@ async def list_trips(current_user: User = Depends(get_current_user), db: AsyncSe
     )
     trips = result.scalars().all()
     return [trip_out(t) for t in trips]
+
+
+@router.get("/preview/{invite_code}", response_model=TripPreviewOut)
+async def preview_by_invite_code(
+    invite_code: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    """Lets someone see what they're being invited to before they commit to joining."""
+    result = await db.execute(
+        select(Trip)
+        .where(Trip.invite_code == invite_code.strip().upper())
+        .options(selectinload(Trip.members).selectinload(TripMember.user))
+    )
+    trip = result.scalar_one_or_none()
+    if not trip:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid invite code")
+
+    organizer = next((m.user for m in trip.members if m.user_id == trip.organizer_id), None)
+    already_member = any(m.user_id == current_user.id for m in trip.members)
+
+    return TripPreviewOut(
+        id=str(trip.id),
+        name=trip.name,
+        destination=trip.destination,
+        start_date=trip.start_date,
+        end_date=trip.end_date,
+        organizer_name=organizer.name if organizer else "Someone",
+        member_count=len(trip.members),
+        already_member=already_member,
+    )
 
 
 @router.get("/{trip_id}", response_model=TripDetailOut)
