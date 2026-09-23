@@ -1,3 +1,4 @@
+import asyncio
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
@@ -12,6 +13,23 @@ from app.itinerary.enrichment import enrich_days
 from app.itinerary.llm_providers import get_llm_provider
 from app.itinerary.prompts import build_day_regeneration_prompt, build_itinerary_prompt
 from app.itinerary.schemas import DayPlan, ItineraryLLMResponse, ItineraryOut
+
+# Gemini/OpenAI both occasionally return transient errors (rate limits, brief
+# capacity overload) that are "usually temporary" per Google's own error text —
+# retrying immediately rarely helps, so back off between attempts instead.
+_RETRY_DELAYS_SECONDS = [2, 5]
+
+
+async def _generate_with_retries(provider, prompt: str, schema):
+    last_error: Exception | None = None
+    for attempt in range(len(_RETRY_DELAYS_SECONDS) + 1):
+        try:
+            return await provider.generate_structured(prompt, schema)
+        except Exception as exc:  # malformed output, rate limits, transient API errors, etc.
+            last_error = exc
+            if attempt < len(_RETRY_DELAYS_SECONDS):
+                await asyncio.sleep(_RETRY_DELAYS_SECONDS[attempt])
+    raise last_error
 
 
 def _date_list(start: date, end: date) -> list[str]:
@@ -59,19 +77,13 @@ async def generate_itinerary(trip: Trip, db: AsyncSession) -> ItineraryOut:
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
-    llm_result = None
-    last_error: Exception | None = None
-    for _ in range(2):
-        try:
-            llm_result = await provider.generate_structured(prompt, ItineraryLLMResponse)
-            break
-        except Exception as exc:  # malformed output, rate limits, transient API errors, etc.
-            last_error = exc
-    if llm_result is None:
+    try:
+        llm_result = await _generate_with_retries(provider, prompt, ItineraryLLMResponse)
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"The AI itinerary generation failed, please try again. ({last_error})",
-        )
+            detail=f"The AI itinerary generation failed, please try again. ({exc})",
+        ) from exc
 
     enriched_days = await enrich_days(llm_result.days, trip.destination, date_list, settings.GOOGLE_PLACES_API_KEY)
 
@@ -140,19 +152,13 @@ async def regenerate_day(trip: Trip, db: AsyncSession, day_number: int, instruct
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
-    new_day = None
-    last_error: Exception | None = None
-    for _ in range(2):
-        try:
-            new_day = await provider.generate_structured(prompt, DayPlan)
-            break
-        except Exception as exc:  # malformed output, rate limits, transient API errors, etc.
-            last_error = exc
-    if new_day is None:
+    try:
+        new_day = await _generate_with_retries(provider, prompt, DayPlan)
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Could not revise this day, please try again. ({last_error})",
-        )
+            detail=f"Could not revise this day, please try again. ({exc})",
+        ) from exc
 
     enriched = await enrich_days([new_day], trip.destination, [new_day.date], settings.GOOGLE_PLACES_API_KEY)
     updated_day = enriched[0].model_dump()
