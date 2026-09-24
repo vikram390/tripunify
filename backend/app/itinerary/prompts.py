@@ -10,6 +10,7 @@ def build_itinerary_prompt(
     preferences: list[dict],
     members_by_id: dict[str, dict],
     date_list: list[str],
+    stay_options: list[dict] | None = None,
 ) -> str:
     lines: list[str] = []
 
@@ -45,6 +46,17 @@ def build_itinerary_prompt(
             "flexible enough to still suit them.)"
         )
     lines.append("")
+
+    if stay_options:
+        lines.append("Real lodging options at the destination, with current listed prices:")
+        for opt in stay_options:
+            price = opt.get("price") or "price not listed"
+            lines.append(f"- {opt['name']} ({price})")
+        lines.append(
+            "For the Day 1 check-in activity, name ONE of these places as the group's stay, choosing "
+            "the one that best fits the group's budget comfort, and mention its price in the description."
+        )
+        lines.append("")
 
     lines.append(
         f"Plan exactly these {len(date_list)} day(s), in this order, using these exact dates: "

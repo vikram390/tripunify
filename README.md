@@ -12,8 +12,8 @@ Final-year B.Tech project. Built incrementally, feature by feature — see "Proj
 - **Frontend:** React (Vite), Tailwind CSS
 - **AI:** Swappable LLM provider (OpenAI or Gemini) via env var
 - **Data:** Google Places API (or OpenStreetMap/Nominatim fallback), Open-Meteo (weather)
-- **Automation:** Playwright (one scoped flow — see backend/app/automation)
-- **Export:** PDF itinerary export
+- **Automation:** Playwright — scrapes live lodging listings with prices from Wikivoyage (see backend/app/automation)
+- **Export:** PDF (ReportLab) and `.ics` calendar export
 
 ## Project structure
 
@@ -37,6 +37,7 @@ python -m venv .venv
 .venv\Scripts\activate          # Windows
 # source .venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
+playwright install chromium     # one-time: headless browser for the automation module
 ```
 
 **First time only:** create your real `.env` from the template, then fill in your own
@@ -102,9 +103,29 @@ Built in order, one feature at a time:
 - [x] Step 3 — Preference collection (per-member form, group submission status)
 - [x] Step 4 — AI itinerary draft generation (Gemini/OpenAI-swappable, conflict flagging)
 - [x] Step 5 — Live data enrichment (real place matches, per-day weather, auto-attached after generation)
-- [ ] Step 6 — Browser automation module (scoped, lowest priority)
-- [~] Step 7 — Group review & real-time chat (live persisted chat verified; section-level regeneration built, awaiting a clean live run — see commit message)
-- [ ] Step 8 — Export (PDF / .ics)
+- [x] Step 6 — Browser automation (Playwright scrapes real priced lodging listings; fed into the AI prompt, shown as "Where to stay")
+- [x] Step 7 — Group review & real-time chat (live chat, per-day comments, "request a change" regenerates one day in place, WebSocket broadcast)
+- [x] Step 8 — Export (organizer finalizes the trip; PDF and `.ics` calendar download)
 
-The itinerary-generation prompt is isolated in its own module (added in step 4) so it can be
-tuned without touching orchestration code.
+The itinerary-generation prompt is isolated in its own module (`backend/app/itinerary/prompts.py`)
+so it can be tuned without touching orchestration code.
+
+## How it works (end-to-end flow)
+
+1. Organizer signs up, creates a trip, and shares the invite link or code.
+2. Invitees open the link, log in or sign up, see a trip preview, and choose **Join trip** or **Not now**.
+3. Each member fills the **Preferences** tab (interests, budget comfort, date flexibility, must-see places).
+4. Organizer clicks **Generate itinerary**: live lodging listings are scraped (Playwright), the AI
+   drafts a day-by-day plan and flags preference conflicts, then each place is matched to real
+   data and each day gets a weather summary.
+5. Members discuss in **Chat**, comment on specific days, and use **Request a change** to have the
+   AI rewrite a single day. Every change is pushed live to everyone over WebSockets.
+6. Organizer clicks **Finalize trip** (locks edits and downloads the PDF); anyone can download the
+   PDF or add the whole trip to their calendar via `.ics`. **Reopen for changes** unlocks it.
+
+## Known limitation
+
+AI generation depends on the Gemini API. When Gemini is overloaded it returns `503 high demand`;
+the app retries with backoff (2s, then 5s) and then shows a clear "please try again" message
+without touching the existing itinerary. Free-tier API keys are deprioritized first under load —
+enabling billing on the Google AI Studio project avoids most of these failures.

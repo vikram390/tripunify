@@ -26,6 +26,26 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   return data
 }
 
+// Authenticated file download (the export endpoints need the Bearer token, so a
+// plain <a href> won't work) — fetches the file as a blob and saves it.
+export async function downloadFile(path, fallbackName) {
+  const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${getToken()}` } })
+  if (!res.ok) {
+    const data = await res.json().catch(() => null)
+    throw new Error(data?.detail || `Download failed (${res.status})`)
+  }
+  const disposition = res.headers.get('Content-Disposition') || ''
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] || fallbackName
+  const url = URL.createObjectURL(await res.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 export const api = {
   signup: (payload) => request('/auth/signup', { method: 'POST', body: payload, auth: false }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload, auth: false }),
@@ -41,6 +61,10 @@ export const api = {
   getPreferencesStatus: (tripId) => request(`/trips/${tripId}/preferences/status`),
   generateItinerary: (tripId) => request(`/trips/${tripId}/itinerary/generate`, { method: 'POST' }),
   getItinerary: (tripId) => request(`/trips/${tripId}/itinerary`),
+  setItineraryStatus: (tripId, status) =>
+    request(`/trips/${tripId}/itinerary/status`, { method: 'PUT', body: { status } }),
+  getStayOptions: (tripId, refresh = false) =>
+    request(`/trips/${tripId}/stay-options${refresh ? '?refresh=true' : ''}`),
   regenerateDay: (tripId, dayNumber, instruction) =>
     request(`/trips/${tripId}/itinerary/days/${dayNumber}/regenerate`, {
       method: 'POST',

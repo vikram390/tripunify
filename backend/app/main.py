@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.router import router as auth_router
+from app.automation.router import router as automation_router
 from app.chat.router import router as chat_router
 from app.core.config import get_settings
 from app.core.db import check_connection, engine
@@ -36,6 +37,7 @@ app.include_router(trips_router)
 app.include_router(preferences_router)
 app.include_router(itinerary_router)
 app.include_router(chat_router)
+app.include_router(automation_router)
 
 
 @app.get("/api/health")

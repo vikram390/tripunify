@@ -66,8 +66,8 @@ export default function TripRoomPage() {
     })
   }
 
-  async function handleSendMessage(content) {
-    await api.sendChatMessage(tripId, { content })
+  async function handleSendMessage(content, refDayNumber = null) {
+    await api.sendChatMessage(tripId, { content, ref_day_number: refDayNumber })
   }
 
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>
@@ -146,6 +146,8 @@ export default function TripRoomPage() {
             itinerary={itinerary}
             loading={itineraryLoading}
             onItineraryChange={setItinerary}
+            messages={messages}
+            onSendMessage={handleSendMessage}
           />
         )}
         {activeTab === 'chat' && (

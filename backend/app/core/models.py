@@ -91,6 +91,7 @@ class Itinerary(Base):
     trip_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("trips.id"), unique=True)
     days: Mapped[list[dict]] = mapped_column(JSONB)
     conflicts: Mapped[list[dict]] = mapped_column(JSONB)
+    stay_options: Mapped[list[dict] | None] = mapped_column(JSONB, nullable=True)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     model: Mapped[str] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(String(20), default="draft")

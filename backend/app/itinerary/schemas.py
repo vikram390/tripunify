@@ -65,13 +65,28 @@ class EnrichedDayPlan(DayPlan):
     weather: DayWeather | None = None
 
 
+class StayOption(BaseModel):
+    """A real lodging listing scraped live by the automation module."""
+
+    name: str
+    price: str | None = None
+    description: str | None = None
+    rating: float | None = None
+    source_url: str
+
+
 class ItineraryOut(BaseModel):
     trip_id: str
     days: list[EnrichedDayPlan]
     conflicts: list[Conflict]
+    stay_options: list[StayOption] = Field(default_factory=list)
     generated_at: datetime
     model: str
     status: Literal["draft", "finalized"] = "draft"
+
+
+class StatusUpdateRequest(BaseModel):
+    status: Literal["draft", "finalized"]
 
 
 class DayRegenerateRequest(BaseModel):

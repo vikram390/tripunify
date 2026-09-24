@@ -43,7 +43,10 @@ export default function ChatTab({ messages, loading, connected, onSend }) {
           const mine = m.user_id === user?.id
           return (
             <div key={m.id} className={mine ? 'text-right' : ''}>
-              <p className="text-xs text-slate-400">{mine ? 'You' : m.user_name}</p>
+              <p className="text-xs text-slate-400">
+                {mine ? 'You' : m.user_name}
+                {m.ref_day_number != null && <span className="ml-1 text-indigo-500">· on Day {m.ref_day_number}</span>}
+              </p>
               <p
                 className={`inline-block max-w-[75%] rounded-lg px-3 py-2 text-left text-sm ${
                   mine ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800'

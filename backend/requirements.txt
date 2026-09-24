@@ -11,3 +11,5 @@ email-validator
 google-genai
 openai
 httpx
+reportlab
+playwright
