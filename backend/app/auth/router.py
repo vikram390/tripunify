@@ -3,7 +3,14 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.schemas import LoginRequest, SignupRequest, TokenResponse, UserOut
+from app.auth.schemas import (
+    LoginRequest,
+    PasswordChangeRequest,
+    ProfileUpdateRequest,
+    SignupRequest,
+    TokenResponse,
+    UserOut,
+)
 from app.auth.security import create_access_token, get_current_user, hash_password, verify_password
 from app.core.db import get_db
 from app.core.models import User
@@ -47,3 +54,33 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)):
     return _user_out(current_user)
+
+
+@router.patch("/me", response_model=UserOut)
+async def update_me(
+    payload: ProfileUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Name can't be empty")
+    current_user.name = name
+    await db.commit()
+    return _user_out(current_user)
+
+
+@router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    payload: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+    if payload.new_password == payload.current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be different from the current one"
+        )
+    current_user.password_hash = hash_password(payload.new_password)
+    await db.commit()
