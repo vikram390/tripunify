@@ -3,7 +3,12 @@ import { AuthProvider } from './auth/AuthContext'
 import LoginPage from './auth/LoginPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import SignupPage from './auth/SignupPage'
+import AppLayout from './components/AppLayout'
+import NotFoundPage from './components/NotFoundPage'
 import DashboardPage from './dashboard/DashboardPage'
+import JoinTripPage from './dashboard/JoinTripPage'
+import NewTripPage from './dashboard/NewTripPage'
+import ProfilePage from './profile/ProfilePage'
 import JoinPage from './trip-room/JoinPage'
 import TripRoomPage from './trip-room/TripRoomPage'
 
@@ -16,21 +21,19 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/join/:code" element={<JoinPage />} />
           <Route
-            path="/"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <AppLayout />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/trips/:tripId"
-            element={
-              <ProtectedRoute>
-                <TripRoomPage />
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/trips/new" element={<NewTripPage />} />
+            <Route path="/join" element={<JoinTripPage />} />
+            <Route path="/trips/:tripId" element={<TripRoomPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

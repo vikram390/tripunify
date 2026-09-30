@@ -1,6 +1,21 @@
 import { useState } from 'react'
+import {
+  CalendarPlus,
+  CloudSun,
+  Download,
+  Lock,
+  LockOpen,
+  MapPin,
+  MessageSquare,
+  RefreshCw,
+  Sparkles,
+  Star,
+  Wand2,
+} from 'lucide-react'
 import { api, downloadFile } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { Alert, Badge, Button, EmptyState } from '../components/ui'
+import { formatDay } from '../lib/format'
 
 const CATEGORY_STYLES = {
   food: 'bg-orange-50 text-orange-700',
@@ -54,78 +69,87 @@ export default function ItineraryTab({ trip, itinerary, loading, onItineraryChan
     }
   }
 
-  if (loading) return <p className="text-slate-500">Loading...</p>
+  if (loading) return <p className="py-8 text-center text-sm text-slate-500">Loading itinerary...</p>
 
   return (
     <div className="space-y-6">
-      {error && <p className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
+      {error && <Alert>{error}</Alert>}
 
       {isOrganizer && !finalized && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-800">
-                {itinerary ? 'Regenerate itinerary' : 'Generate itinerary'}
-              </h2>
-              <p className="text-sm text-slate-500">
-                Uses everyone's submitted preferences so far to draft a day-by-day plan.
-              </p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+                <Sparkles className="size-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">
+                  {itinerary ? 'Regenerate itinerary' : 'Generate itinerary'}
+                </h2>
+                <p className="text-sm text-slate-500">
+                  Uses everyone's submitted preferences so far to draft a day-by-day plan.
+                </p>
+              </div>
             </div>
-            <button
+            <Button
               onClick={handleGenerate}
-              disabled={generating}
-              className="whitespace-nowrap rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+              loading={generating}
+              icon={itinerary ? RefreshCw : Wand2}
+              className="w-full sm:w-auto"
             >
               {generating ? 'Generating...' : itinerary ? 'Regenerate' : 'Generate itinerary'}
-            </button>
+            </Button>
           </div>
-          {generating && <p className="mt-3 text-sm text-slate-400">This can take up to a minute...</p>}
+          {generating && (
+            <p className="mt-3 text-sm text-slate-500">
+              Fetching live stays, drafting the plan and matching real places — this can take up to a minute.
+            </p>
+          )}
         </div>
       )}
 
       {!itinerary && !isOrganizer && (
-        <p className="text-slate-500">The organizer hasn't generated the itinerary yet.</p>
+        <EmptyState
+          icon={Sparkles}
+          title="No itinerary yet"
+          description="The organizer will generate the plan once everyone has shared their preferences. It will appear here instantly."
+        />
       )}
 
       {itinerary && (
         <>
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                finalized ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-              }`}
-            >
-              {finalized ? 'Finalized' : 'Draft'}
-            </span>
-            <div className="ml-auto flex flex-wrap gap-2">
-              <button
-                onClick={() => handleDownload('pdf')}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-              >
-                Download PDF
-              </button>
-              <button
-                onClick={() => handleDownload('ics')}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-              >
-                Add to calendar (.ics)
-              </button>
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2">
+              <Badge tone={finalized ? 'emerald' : 'amber'}>
+                {finalized ? <Lock className="size-3" /> : <Sparkles className="size-3" />}
+                {finalized ? 'Finalized' : 'Draft'}
+              </Badge>
+              <span className="text-xs text-slate-500">{itinerary.days.length} days planned</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex sm:flex-wrap">
+              <Button variant="secondary" size="sm" icon={Download} onClick={() => handleDownload('pdf')}>
+                PDF
+              </Button>
+              <Button variant="secondary" size="sm" icon={CalendarPlus} onClick={() => handleDownload('ics')}>
+                Add to calendar
+              </Button>
               {isOrganizer && (
-                <button
+                <Button
+                  size="sm"
+                  variant={finalized ? 'dark' : 'success'}
+                  icon={finalized ? LockOpen : Lock}
+                  loading={statusBusy}
                   onClick={() => handleStatus(finalized ? 'draft' : 'finalized')}
-                  disabled={statusBusy}
-                  className={`rounded-md px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50 ${
-                    finalized ? 'bg-slate-700 hover:bg-slate-600' : 'bg-emerald-600 hover:bg-emerald-500'
-                  }`}
+                  className="col-span-2"
                 >
                   {statusBusy ? 'Saving...' : finalized ? 'Reopen for changes' : 'Finalize trip'}
-                </button>
+                </Button>
               )}
             </div>
           </div>
 
           {itinerary.conflicts.length > 0 && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 p-5">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
               <h3 className="mb-2 text-sm font-semibold text-amber-800">Needs group input</h3>
               <ul className="space-y-2">
                 {itinerary.conflicts.map((c, i) => (
@@ -173,9 +197,9 @@ function StayOptions({ tripId, initial }) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h3 className="text-lg font-semibold text-slate-800">Where to stay</h3>
+        <h3 className="text-base font-semibold text-slate-900">Where to stay</h3>
         <button onClick={handleRefresh} disabled={refreshing} className="text-xs text-indigo-600 hover:underline">
           {refreshing ? 'Fetching live listings...' : 'Refresh live listings'}
         </button>
@@ -246,44 +270,52 @@ function DayCard({ tripId, day, finalized, comments, onSendMessage }) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-lg font-semibold text-slate-800">
-          Day {day.day_number} · {day.date}
-        </h3>
-        <div className="flex items-center gap-3">
-          {day.weather && <span className="text-xs text-slate-500">{day.weather.summary}</span>}
-          <button
-            onClick={() => setShowComments((v) => !v)}
-            className="text-xs font-medium text-slate-600 hover:underline"
-          >
-            💬 {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
-          </button>
-          {!finalized && (
-            <button
-              onClick={() => setRequesting((v) => !v)}
-              className="text-xs font-medium text-indigo-600 hover:underline"
-            >
-              {requesting ? 'Cancel' : 'Request a change'}
-            </button>
-          )}
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex items-start gap-3">
+        <div className="flex size-11 shrink-0 flex-col items-center justify-center rounded-xl bg-indigo-600 text-white">
+          <span className="text-[10px] leading-none font-medium uppercase opacity-80">Day</span>
+          <span className="text-base leading-tight font-bold">{day.day_number}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-semibold text-slate-900">{formatDay(day.date)}</h3>
+          <p className="mt-0.5 text-sm text-slate-500">{day.summary}</p>
         </div>
       </div>
-      <p className="mb-4 mt-1 text-sm text-slate-500">{day.summary}</p>
+      <div className="mt-3 mb-4 flex flex-wrap items-center gap-2">
+        {day.weather && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-xs text-sky-700">
+            <CloudSun className="size-3.5" /> {day.weather.summary}
+          </span>
+        )}
+        <button
+          onClick={() => setShowComments((v) => !v)}
+          className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+        >
+          <MessageSquare className="size-3.5" /> {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+        </button>
+        {!finalized && (
+          <button
+            onClick={() => setRequesting((v) => !v)}
+            className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            <Wand2 className="size-3.5" /> {requesting ? 'Cancel' : 'Request a change'}
+          </button>
+        )}
+      </div>
 
       {requesting && !finalized && (
-        <form onSubmit={handleChangeRequest} className="mb-4 flex gap-2 rounded-md bg-slate-50 p-3">
+        <form onSubmit={handleChangeRequest} className="mb-4 flex flex-col gap-2 rounded-xl bg-slate-50 p-3 sm:flex-row">
           <input
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
             placeholder="e.g. swap the hotel for something cheaper"
-            className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+            className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
             autoFocus
           />
           <button
             type="submit"
             disabled={submitting}
-            className="whitespace-nowrap rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white hover:bg-slate-700 disabled:opacity-50"
           >
             {submitting ? 'Updating day...' : 'Send request'}
           </button>
@@ -291,11 +323,12 @@ function DayCard({ tripId, day, finalized, comments, onSendMessage }) {
       )}
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
-      <ul className="space-y-3">
+      <ul className="space-y-4 border-l-2 border-slate-100 pl-4 sm:ml-1">
         {day.activities.map((act, i) => (
-          <li key={i} className="flex gap-3">
-            <span className="w-14 shrink-0 font-mono text-sm text-slate-400">{act.time}</span>
-            <div className="flex-1">
+          <li key={i} className="relative">
+            <span className="absolute top-1 -left-[1.42rem] size-2.5 rounded-full border-2 border-white bg-indigo-400" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-indigo-600">{act.time}</p>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium text-slate-800">{act.title}</span>
                 <span
@@ -305,13 +338,20 @@ function DayCard({ tripId, day, finalized, comments, onSendMessage }) {
                 >
                   {act.category}
                 </span>
-                {act.place_rating != null && <span className="text-xs text-amber-600">★ {act.place_rating}</span>}
+                {act.place_rating != null && (
+                  <span className="inline-flex items-center gap-0.5 text-xs text-amber-600">
+                    <Star className="size-3 fill-current" /> {act.place_rating}
+                  </span>
+                )}
               </div>
               <p className="text-sm text-slate-500">{act.description}</p>
               {act.place_name && (
-                <p className="mt-0.5 text-xs text-slate-400">
-                  📍 {act.place_name}
-                  {act.place_description ? ` — ${act.place_description}` : ''}
+                <p className="mt-0.5 flex items-start gap-1 text-xs text-slate-400">
+                  <MapPin className="mt-px size-3 shrink-0" />
+                  <span>
+                    {act.place_name}
+                    {act.place_description ? ` — ${act.place_description}` : ''}
+                  </span>
                 </p>
               )}
             </div>
@@ -332,11 +372,11 @@ function DayCard({ tripId, day, finalized, comments, onSendMessage }) {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder={`Comment on Day ${day.day_number}...`}
-              className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
             />
             <button
               type="submit"
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
             >
               Post
             </button>

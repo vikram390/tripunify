@@ -33,13 +33,21 @@ export function AuthProvider({ children }) {
     persistSession(await api.login(payload))
   }
 
+  async function updateProfile(payload) {
+    setUser(await api.updateMe(payload))
+  }
+
+  async function changePassword(payload) {
+    await api.changePassword(payload)
+  }
+
   function logout() {
     localStorage.removeItem(TOKEN_KEY)
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signup, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, signup, login, logout, updateProfile, changePassword }}>
       {children}
     </AuthContext.Provider>
   )

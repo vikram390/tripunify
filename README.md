@@ -9,7 +9,7 @@ Final-year B.Tech project. Built incrementally, feature by feature — see "Proj
 ## Tech stack
 
 - **Backend:** Python, FastAPI, PostgreSQL (SQLAlchemy async + Alembic migrations), JWT auth, WebSockets
-- **Frontend:** React (Vite), Tailwind CSS
+- **Frontend:** React (Vite), Tailwind CSS, lucide-react icons — responsive from 320px phones to desktop
 - **AI:** Swappable LLM provider (OpenAI or Gemini) via env var
 - **Data:** Google Places API (or OpenStreetMap/Nominatim fallback), Open-Meteo (weather)
 - **Automation:** Playwright — scrapes live lodging listings with prices from Wikivoyage (see backend/app/automation)
@@ -106,6 +106,7 @@ Built in order, one feature at a time:
 - [x] Step 6 — Browser automation (Playwright scrapes real priced lodging listings; fed into the AI prompt, shown as "Where to stay")
 - [x] Step 7 — Group review & real-time chat (live chat, per-day comments, "request a change" regenerates one day in place, WebSocket broadcast)
 - [x] Step 8 — Export (organizer finalizes the trip; PDF and `.ics` calendar download)
+- [x] App shell & profile — responsive navigation (top nav + avatar menu on desktop, bottom tab bar on phones), separate My trips / New trip / Join trip pages, and a Profile page (trip stats, edit display name, change password)
 
 The itinerary-generation prompt is isolated in its own module (`backend/app/itinerary/prompts.py`)
 so it can be tuned without touching orchestration code.

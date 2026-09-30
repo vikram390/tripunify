@@ -1,28 +1,23 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { CalendarDays, Crown, MapPin, Plus, Ticket, Users } from 'lucide-react'
 import { api } from '../api/client'
-import { Navbar } from '../components/Navbar'
+import { useAuth } from '../auth/AuthContext'
+import { Alert, Badge, ButtonLink, EmptyState, PageHeader, Spinner } from '../components/ui'
+import { coverFor, firstName, formatDateRange, tripLengthDays, tripTiming } from '../lib/format'
 
-const emptyTripForm = {
-  name: '',
-  destination: '',
-  start_date: '',
-  end_date: '',
-  budget_min: '',
-  budget_max: '',
-}
+const FILTERS = [
+  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'past', label: 'Past' },
+  { id: 'all', label: 'All' },
+]
 
 export default function DashboardPage() {
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const [trips, setTrips] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-  const [tripForm, setTripForm] = useState(emptyTripForm)
-  const [creating, setCreating] = useState(false)
-
-  const [joinCode, setJoinCode] = useState('')
-  const [joining, setJoining] = useState(false)
+  const [filter, setFilter] = useState('upcoming')
 
   useEffect(() => {
     api
@@ -32,158 +27,144 @@ export default function DashboardPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  async function handleCreateTrip(e) {
-    e.preventDefault()
-    setError('')
-    setCreating(true)
-    try {
-      const trip = await api.createTrip({
-        ...tripForm,
-        budget_min: Number(tripForm.budget_min),
-        budget_max: Number(tripForm.budget_max),
-      })
-      navigate(`/trips/${trip.id}`)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCreating(false)
-    }
-  }
+  const visible = useMemo(() => {
+    const withTiming = trips.map((t) => ({ ...t, timing: tripTiming(t) }))
+    const filtered = withTiming.filter((t) =>
+      filter === 'all' ? true : filter === 'past' ? t.timing.state === 'completed' : t.timing.state !== 'completed',
+    )
+    // Soonest first for upcoming; most recent first for past/all.
+    return filtered.sort((a, b) =>
+      filter === 'upcoming' ? a.start_date.localeCompare(b.start_date) : b.start_date.localeCompare(a.start_date),
+    )
+  }, [trips, filter])
 
-  async function handleJoin(e) {
-    e.preventDefault()
-    setError('')
-    setJoining(true)
-    try {
-      const trip = await api.joinTrip(joinCode.trim())
-      navigate(`/trips/${trip.id}`)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setJoining(false)
-    }
-  }
+  const counts = useMemo(() => {
+    const past = trips.filter((t) => tripTiming(t).state === 'completed').length
+    return { upcoming: trips.length - past, past, all: trips.length }
+  }, [trips])
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
-      <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
-        {error && <p className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
+    <>
+      <PageHeader
+        title={`Hi, ${firstName(user?.name)} 👋`}
+        description="Plan together, decide together — here are your group trips."
+        action={
+          <div className="hidden gap-2 sm:flex">
+            <ButtonLink to="/join" variant="secondary" icon={Ticket}>
+              Join a trip
+            </ButtonLink>
+            <ButtonLink to="/trips/new" icon={Plus}>
+              New trip
+            </ButtonLink>
+          </div>
+        }
+      />
 
-        <section className="grid gap-6 md:grid-cols-2">
-          <form
-            onSubmit={handleCreateTrip}
-            className="space-y-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-          >
-            <h2 className="text-lg font-semibold text-slate-800">Start a new trip</h2>
-            <input
-              required
-              placeholder="Trip name"
-              value={tripForm.name}
-              onChange={(e) => setTripForm({ ...tripForm, name: e.target.value })}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-            <input
-              required
-              placeholder="Destination"
-              value={tripForm.destination}
-              onChange={(e) => setTripForm({ ...tripForm, destination: e.target.value })}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-            <div className="flex gap-3">
-              <input
-                required
-                type="date"
-                value={tripForm.start_date}
-                onChange={(e) => setTripForm({ ...tripForm, start_date: e.target.value })}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              />
-              <input
-                required
-                type="date"
-                value={tripForm.end_date}
-                onChange={(e) => setTripForm({ ...tripForm, end_date: e.target.value })}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="flex gap-3">
-              <input
-                required
-                type="number"
-                min="0"
-                placeholder="Min budget"
-                value={tripForm.budget_min}
-                onChange={(e) => setTripForm({ ...tripForm, budget_min: e.target.value })}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              />
-              <input
-                required
-                type="number"
-                min="0"
-                placeholder="Max budget"
-                value={tripForm.budget_max}
-                onChange={(e) => setTripForm({ ...tripForm, budget_max: e.target.value })}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={creating}
-              className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+      {error && (
+        <div className="mb-4">
+          <Alert>{error}</Alert>
+        </div>
+      )}
+
+      {loading ? (
+        <Spinner label="Loading your trips..." />
+      ) : trips.length === 0 ? (
+        <EmptyState
+          icon={MapPin}
+          title="No trips yet"
+          description="Start a trip and invite your friends, or join one with the invite code or link an organizer shared with you."
+        >
+          <ButtonLink to="/trips/new" icon={Plus}>
+            Create a trip
+          </ButtonLink>
+          <ButtonLink to="/join" variant="secondary" icon={Ticket}>
+            Join with a code
+          </ButtonLink>
+        </EmptyState>
+      ) : (
+        <>
+          <div className="no-scrollbar -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0" role="tablist">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                role="tab"
+                aria-selected={filter === f.id}
+                onClick={() => setFilter(f.id)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  filter === f.id
+                    ? 'bg-slate-900 text-white'
+                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {f.label}
+                <span className={`text-xs ${filter === f.id ? 'text-slate-300' : 'text-slate-400'}`}>{counts[f.id]}</span>
+              </button>
+            ))}
+          </div>
+
+          {visible.length === 0 ? (
+            <EmptyState
+              icon={CalendarDays}
+              title={filter === 'past' ? 'No past trips yet' : 'Nothing coming up'}
+              description={
+                filter === 'past' ? 'Trips you have finished will show up here.' : 'Plan your next getaway with the group.'
+              }
             >
-              {creating ? 'Creating...' : 'Create trip'}
-            </button>
-          </form>
-
-          <form
-            onSubmit={handleJoin}
-            className="space-y-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-          >
-            <h2 className="text-lg font-semibold text-slate-800">Join a trip</h2>
-            <p className="text-sm text-slate-500">Got an invite from an organizer? Paste the code or the invite link here.</p>
-            <input
-              required
-              placeholder="Invite code or link"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-            <button
-              type="submit"
-              disabled={joining}
-              className="w-full rounded-md bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
-            >
-              {joining ? 'Joining...' : 'Join trip'}
-            </button>
-          </form>
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-slate-800">Your trips</h2>
-          {loading ? (
-            <p className="text-slate-500">Loading...</p>
-          ) : trips.length === 0 ? (
-            <p className="text-slate-500">No trips yet — create one or join with a code.</p>
+              {filter !== 'past' && (
+                <ButtonLink to="/trips/new" icon={Plus}>
+                  New trip
+                </ButtonLink>
+              )}
+            </EmptyState>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {trips.map((trip) => (
-                <button
-                  key={trip.id}
-                  onClick={() => navigate(`/trips/${trip.id}`)}
-                  className="rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm hover:border-indigo-300"
-                >
-                  <h3 className="font-semibold text-slate-800">{trip.name}</h3>
-                  <p className="text-sm text-slate-500">{trip.destination}</p>
-                  <p className="mt-2 text-xs text-slate-400">
-                    {trip.start_date} → {trip.end_date} · {trip.member_count} member
-                    {trip.member_count === 1 ? '' : 's'}
-                  </p>
-                </button>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visible.map((trip) => (
+                <TripCard key={trip.id} trip={trip} isOrganizer={trip.organizer_id === user?.id} />
               ))}
             </div>
           )}
-        </section>
-      </main>
-    </div>
+        </>
+      )}
+    </>
+  )
+}
+
+function TripCard({ trip, isOrganizer }) {
+  const { timing } = trip
+  const days = tripLengthDays(trip.start_date, trip.end_date)
+
+  return (
+    <Link
+      to={`/trips/${trip.id}`}
+      className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
+    >
+      <div className={`relative h-24 bg-gradient-to-br ${coverFor(trip.id)} p-4`}>
+        <MapPin className="absolute -right-3 -bottom-4 size-24 text-white/15" />
+        <div className="flex items-start justify-between gap-2">
+          <Badge tone="light">{timing.label}</Badge>
+          {isOrganizer && (
+            <Badge tone="glass">
+              <Crown className="size-3" /> Organizer
+            </Badge>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="truncate text-base font-semibold text-slate-900 group-hover:text-indigo-700">{trip.name}</h3>
+        <p className="mt-0.5 flex items-center gap-1 truncate text-sm text-slate-500">
+          <MapPin className="size-3.5 shrink-0" /> {trip.destination}
+        </p>
+        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+          <span className="flex items-center gap-1">
+            <CalendarDays className="size-3.5" />
+            {formatDateRange(trip.start_date, trip.end_date)}
+            <span className="text-slate-400">· {days}d</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="size-3.5" /> {trip.member_count}
+          </span>
+        </div>
+      </div>
+    </Link>
   )
 }

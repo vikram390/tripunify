@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Check, CircleDashed, ClipboardList, Users } from 'lucide-react'
 import { api } from '../api/client'
+import { Alert, Avatar, Button, CardHeader, inputClass } from '../components/ui'
 
 const INTERESTS = [
   { value: 'adventure', label: 'Adventure' },
@@ -20,6 +22,11 @@ const DATE_FLEXIBILITY = [
   { value: 'flexible_few_days', label: 'Flexible by a few days' },
   { value: 'very_flexible', label: 'Very flexible' },
 ]
+
+const OPTION_CLASS = (selected) =>
+  `flex cursor-pointer items-center gap-2 rounded-xl border px-3.5 py-3 text-sm transition-colors ${
+    selected ? 'border-indigo-500 bg-indigo-50/60 text-indigo-900' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+  }`
 
 const emptyForm = {
   interests: [],
@@ -89,47 +96,70 @@ export default function PreferencesTab({ tripId }) {
     }
   }
 
-  if (loading) return <p className="text-slate-500">Loading...</p>
+  if (loading) return <p className="py-8 text-center text-sm text-slate-500">Loading preferences...</p>
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
       {status && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-lg font-semibold text-slate-800">
-            {status.all_submitted
-              ? 'Everyone has submitted their preferences'
-              : `Waiting on ${status.total_members - status.submitted_count} of ${status.total_members} members`}
-          </h2>
-          <ul className="space-y-1">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6 lg:col-span-2 lg:self-start">
+          <CardHeader
+            icon={Users}
+            title={
+              status.all_submitted
+                ? 'Everyone has submitted their preferences'
+                : `Waiting on ${status.total_members - status.submitted_count} of ${status.total_members} members`
+            }
+          />
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all"
+              style={{ width: `${(status.submitted_count / Math.max(status.total_members, 1)) * 100}%` }}
+            />
+          </div>
+          <p className="mt-1.5 text-xs text-slate-500">
+            {status.submitted_count}/{status.total_members} submitted
+          </p>
+          <ul className="mt-4 space-y-2.5">
             {status.members.map((m) => (
-              <li key={m.user_id} className="flex items-center gap-2 text-sm">
-                <span
-                  className={`inline-block h-2 w-2 rounded-full ${
-                    m.submitted ? 'bg-emerald-500' : 'bg-slate-300'
-                  }`}
-                />
-                <span className="text-slate-700">{m.name}</span>
-                <span className="text-xs text-slate-400">{m.submitted ? 'submitted' : 'waiting'}</span>
+              <li key={m.user_id} className="flex items-center gap-3 text-sm">
+                <Avatar name={m.name} seed={m.user_id} size="sm" />
+                <span className="min-w-0 flex-1 truncate text-slate-700">{m.name}</span>
+                {m.submitted ? (
+                  <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+                    <Check className="size-3.5" /> Submitted
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-xs text-slate-400">
+                    <CircleDashed className="size-3.5" /> Waiting
+                  </span>
+                )}
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-800">Your preferences</h2>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6 lg:col-span-3"
+      >
+        <CardHeader
+          icon={ClipboardList}
+          title="Your preferences"
+          description="The AI plans around everyone's answers and flags any clashes for the group."
+        />
+        {error && <Alert>{error}</Alert>}
 
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-700">Interests</p>
+          <p className="mb-2 text-sm font-medium text-slate-700">Interests <span className="font-normal text-slate-400">(pick at least one)</span></p>
           <div className="flex flex-wrap gap-2">
             {INTERESTS.map((opt) => (
               <label
                 key={opt.value}
-                className={`cursor-pointer rounded-full border px-3 py-1 text-sm ${
+                className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors select-none ${
                   form.interests.includes(opt.value)
                     ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                    : 'border-slate-300 text-slate-600'
+                    : 'border-slate-300 text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <input
@@ -138,6 +168,7 @@ export default function PreferencesTab({ tripId }) {
                   checked={form.interests.includes(opt.value)}
                   onChange={() => toggleInterest(opt.value)}
                 />
+                {form.interests.includes(opt.value) && <Check className="size-3.5" />}
                 {opt.label}
               </label>
             ))}
@@ -146,11 +177,12 @@ export default function PreferencesTab({ tripId }) {
 
         <div>
           <p className="mb-2 text-sm font-medium text-slate-700">Budget comfort</p>
-          <div className="flex flex-wrap gap-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {BUDGET_COMFORT.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-1.5 text-sm text-slate-700">
+              <label key={opt.value} className={OPTION_CLASS(form.budget_comfort === opt.value)}>
                 <input
                   type="radio"
+                  className="accent-indigo-600"
                   name="budget_comfort"
                   checked={form.budget_comfort === opt.value}
                   onChange={() => setForm({ ...form, budget_comfort: opt.value })}
@@ -163,11 +195,12 @@ export default function PreferencesTab({ tripId }) {
 
         <div>
           <p className="mb-2 text-sm font-medium text-slate-700">Date flexibility</p>
-          <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-1 gap-2">
             {DATE_FLEXIBILITY.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-1.5 text-sm text-slate-700">
+              <label key={opt.value} className={OPTION_CLASS(form.date_flexibility === opt.value)}>
                 <input
                   type="radio"
+                  className="accent-indigo-600"
                   name="date_flexibility"
                   checked={form.date_flexibility === opt.value}
                   onChange={() => setForm({ ...form, date_flexibility: opt.value })}
@@ -186,17 +219,20 @@ export default function PreferencesTab({ tripId }) {
             maxLength={500}
             rows={3}
             placeholder="Any specific places, restaurants, or experiences you don't want to miss?"
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className={inputClass}
           />
         </div>
 
-        <button
+        <Button
           type="submit"
-          disabled={saving || form.interests.length === 0}
-          className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+          size="lg"
+          loading={saving}
+          disabled={form.interests.length === 0}
+          icon={saved ? Check : undefined}
+          className="w-full"
         >
           {saving ? 'Saving...' : saved ? 'Saved!' : 'Save preferences'}
-        </button>
+        </Button>
       </form>
     </div>
   )
