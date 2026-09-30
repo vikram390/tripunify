@@ -9,7 +9,7 @@ from app.core.db import get_db
 from app.core.models import Trip, TripMember, User
 from app.trips.schemas import JoinTripRequest, TripCreateRequest, TripDetailOut, TripOut, TripPreviewOut
 from app.trips.service import get_trip_or_404, require_member, resolve_members, trip_out
-from app.trips.utils import generate_invite_code
+from app.trips.utils import generate_invite_code, normalize_invite_code
 
 router = APIRouter(prefix="/api/trips", tags=["trips"])
 
@@ -67,7 +67,7 @@ async def preview_by_invite_code(
     """Lets someone see what they're being invited to before they commit to joining."""
     result = await db.execute(
         select(Trip)
-        .where(Trip.invite_code == invite_code.strip().upper())
+        .where(Trip.invite_code == normalize_invite_code(invite_code))
         .options(selectinload(Trip.members).selectinload(TripMember.user))
     )
     trip = result.scalar_one_or_none()
@@ -106,7 +106,7 @@ async def join_trip(
 ):
     result = await db.execute(
         select(Trip)
-        .where(Trip.invite_code == payload.invite_code.strip().upper())
+        .where(Trip.invite_code == payload.invite_code)
         .options(selectinload(Trip.members).selectinload(TripMember.user))
     )
     trip = result.scalar_one_or_none()

@@ -1,6 +1,8 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.trips.utils import normalize_invite_code
 
 
 class TripCreateRequest(BaseModel):
@@ -22,6 +24,12 @@ class TripCreateRequest(BaseModel):
 
 class JoinTripRequest(BaseModel):
     invite_code: str = Field(min_length=1, max_length=32)
+
+    # Runs before the length check, so a pasted invite link is reduced to its code first.
+    @field_validator("invite_code", mode="before")
+    @classmethod
+    def extract_code(cls, value):
+        return normalize_invite_code(value) if isinstance(value, str) else value
 
 
 class MemberOut(BaseModel):

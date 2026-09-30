@@ -140,13 +140,13 @@ export default function DashboardPage() {
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
           >
             <h2 className="text-lg font-semibold text-slate-800">Join a trip</h2>
-            <p className="text-sm text-slate-500">Got an invite code from an organizer? Enter it here.</p>
+            <p className="text-sm text-slate-500">Got an invite from an organizer? Paste the code or the invite link here.</p>
             <input
               required
-              placeholder="Invite code"
+              placeholder="Invite code or link"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm uppercase"
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             />
             <button
               type="submit"

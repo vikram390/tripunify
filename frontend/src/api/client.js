@@ -20,7 +20,11 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
 
   const data = await res.json().catch(() => null)
   if (!res.ok) {
-    const message = data?.detail || `Request failed (${res.status})`
+    const detail = data?.detail
+    // FastAPI validation errors (422) come back as a list — show the first readable message.
+    const message = Array.isArray(detail)
+      ? detail[0]?.msg || 'Invalid input'
+      : detail || `Request failed (${res.status})`
     throw new Error(typeof message === 'string' ? message : JSON.stringify(message))
   }
   return data
