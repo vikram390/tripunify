@@ -124,9 +124,17 @@ so it can be tuned without touching orchestration code.
 6. Organizer clicks **Finalize trip** (locks edits and downloads the PDF); anyone can download the
    PDF or add the whole trip to their calendar via `.ics`. **Reopen for changes** unlocks it.
 
-## Known limitation
+## AI availability (automatic model fallback)
 
-AI generation depends on the Gemini API. When Gemini is overloaded it returns `503 high demand`;
-the app retries with backoff (2s, then 5s) and then shows a clear "please try again" message
-without touching the existing itinerary. Free-tier API keys are deprioritized first under load —
-enabling billing on the Google AI Studio project avoids most of these failures.
+Hosted AI models regularly return `503 high demand` when they're overloaded, and which model
+is overloaded changes from minute to minute. TripUnify therefore keeps an ordered list of models:
+`GEMINI_MODEL` first, then `GEMINI_FALLBACK_MODELS` (comma-separated, in `backend/.env`; sensible
+defaults are built in). If a model is busy, rate-limited, times out (75s) or returns bad output,
+the next one is tried immediately; if all are busy it pauses briefly and goes through the list
+once more, within a 150-second budget. The itinerary records which model actually answered, and
+the server log shows any fallback. Only if every model fails does the user see a short
+"AI service is very busy — nothing was changed, try again in a minute" message; the existing
+itinerary is never touched. (`OPENAI_FALLBACK_MODELS` works the same way for OpenAI.)
+
+Free-tier Gemini keys are deprioritized first under load — enabling billing on the Google AI
+Studio project makes 503s much rarer.

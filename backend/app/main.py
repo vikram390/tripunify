@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -13,6 +14,9 @@ from app.preferences.router import router as preferences_router
 from app.trips.router import router as trips_router
 
 settings = get_settings()
+
+# Lets app-level logs (e.g. which AI model answered after a fallback) show up next to uvicorn's.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 
 
 @asynccontextmanager

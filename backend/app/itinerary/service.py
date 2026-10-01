@@ -1,4 +1,3 @@
-import asyncio
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
@@ -11,26 +10,21 @@ from app.core.config import get_settings
 from app.core.models import Itinerary, Preference, Trip
 from app.core.ws_manager import manager
 from app.itinerary.enrichment import enrich_days
-from app.itinerary.llm_providers import get_llm_provider
+from app.itinerary.llm_providers import LLMUnavailableError, get_llm_provider
 from app.itinerary.prompts import build_day_regeneration_prompt, build_itinerary_prompt
 from app.itinerary.schemas import DayPlan, ItineraryLLMResponse, ItineraryOut
 
-# Gemini/OpenAI both occasionally return transient errors (rate limits, brief
-# capacity overload) that are "usually temporary" per Google's own error text —
-# retrying immediately rarely helps, so back off between attempts instead.
-_RETRY_DELAYS_SECONDS = [2, 5]
-
-
-async def _generate_with_retries(provider, prompt: str, schema):
-    last_error: Exception | None = None
-    for attempt in range(len(_RETRY_DELAYS_SECONDS) + 1):
-        try:
-            return await provider.generate_structured(prompt, schema)
-        except Exception as exc:  # malformed output, rate limits, transient API errors, etc.
-            last_error = exc
-            if attempt < len(_RETRY_DELAYS_SECONDS):
-                await asyncio.sleep(_RETRY_DELAYS_SECONDS[attempt])
-    raise last_error
+def _ai_unavailable(what: str, exc: LLMUnavailableError) -> HTTPException:
+    """A readable message for the UI; the per-model details stay in the server log."""
+    tried = len({a.split(":")[0] for a in exc.attempts if not a.startswith("gave up")})
+    return HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=(
+            f"The AI service is very busy right now, so {what} didn't go through "
+            f"(tried {tried} AI model{'' if tried == 1 else 's'}). "
+            "Nothing was changed — please try again in a minute."
+        ),
+    )
 
 
 def _date_list(start: date, end: date) -> list[str]:
@@ -105,17 +99,13 @@ async def generate_itinerary(trip: Trip, db: AsyncSession) -> ItineraryOut:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
     try:
-        llm_result = await _generate_with_retries(provider, prompt, ItineraryLLMResponse)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"The AI itinerary generation failed, please try again. ({exc})",
-        ) from exc
+        llm_result, model_name = await provider.generate(prompt, ItineraryLLMResponse)
+    except LLMUnavailableError as exc:
+        raise _ai_unavailable("the itinerary", exc) from exc
 
     enriched_days = await enrich_days(llm_result.days, trip.destination, date_list, settings.GOOGLE_PLACES_API_KEY)
 
     now = datetime.now(timezone.utc)
-    model_name = settings.GEMINI_MODEL if settings.LLM_PROVIDER == "gemini" else settings.OPENAI_MODEL
     values = {
         "days": [d.model_dump() for d in enriched_days],
         "conflicts": [c.model_dump() for c in llm_result.conflicts],
@@ -186,12 +176,9 @@ async def regenerate_day(trip: Trip, db: AsyncSession, day_number: int, instruct
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
     try:
-        new_day = await _generate_with_retries(provider, prompt, DayPlan)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Could not revise this day, please try again. ({exc})",
-        ) from exc
+        new_day, _ = await provider.generate(prompt, DayPlan)
+    except LLMUnavailableError as exc:
+        raise _ai_unavailable(f"the change to Day {day_number}", exc) from exc
 
     enriched = await enrich_days([new_day], trip.destination, [new_day.date], settings.GOOGLE_PLACES_API_KEY)
     updated_day = enriched[0].model_dump()

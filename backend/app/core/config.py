@@ -32,8 +32,11 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "gemini"
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_FALLBACK_MODELS: str = ""
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.8-flash"
+    # Comma-separated, tried in order when the primary model is overloaded or failing.
+    GEMINI_FALLBACK_MODELS: str = "gemini-3.6-flash,gemini-3-flash-preview,gemini-3.5-flash-lite"
 
     # Places / Weather
     GOOGLE_PLACES_API_KEY: str = ""
